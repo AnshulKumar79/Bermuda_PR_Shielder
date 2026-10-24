@@ -80,7 +80,7 @@ pip install -r backend/requirements.txt
 Create `.env` (or run without key to use the built-in intelligent fallback mode):
 ```env
 GROQ_API_KEY=gsk_your_groq_api_key_here
-GEMMA_MODEL=gemma2-9b-it
+GEMMA_MODEL=gemma4
 PORT=8000
 ```
 
@@ -130,6 +130,12 @@ jobs:
 ---
 
 ## 👥 The Team & Hacktoberfest Spirit
+
+*Team members* :-
+>> Anshul Kumar Chauhan
+>> Krishna Tiwari
+>> Ronit Kumar
+
 
 Built with ❤️ for the global open-source community during MLH Hacktoberfest.
 
