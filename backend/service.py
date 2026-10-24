@@ -42,7 +42,7 @@ def _heuristic_fallback(request: PRAnalysisRequest) -> PRAnalysisResponse:
                 ],
                 suggested_labels=["security", "do-not-merge"]
             ),
-            contributor_mentor_comment=f"⚠️ @{request.contributor_username}, urgent safety heads-up! It looks like an active API key or secret token was detected in this diff. For your own security, please immediately revoke/rotate that key, remove it from git history using a tool like BFG Repo-Cleaner or git-filter-repo, and switch to environment variables (`os.getenv`). We're here to help if you have questions!",
+            contributor_mentor_comment=f"@{request.contributor_username}, urgent safety heads-up: It looks like an active API key or secret token was detected in this diff. For your own security, please immediately revoke/rotate that key, remove it from git history using a tool like BFG Repo-Cleaner or git-filter-repo, and switch to environment variables (`os.getenv`). We are here to help if you have questions.",
             reasoning="Gemma detected regex pattern matching known API key signatures inside git diff."
         )
 
@@ -62,7 +62,7 @@ def _heuristic_fallback(request: PRAnalysisRequest) -> PRAnalysisResponse:
                 ],
                 suggested_labels=["invalid", "spam"]
             ),
-            contributor_mentor_comment=f"Hello @{request.contributor_username}! 👋 Thank you for checking out our project during Hacktoberfest. However, this PR only introduces trivial whitespace or cosmetic edits without resolving an active issue. To ensure meaningful open-source contributions and maintain repository quality, we are unable to accept this PR. We encourage you to check out our open issues tagged with **`good first issue`**!",
+            contributor_mentor_comment=f"Hello @{request.contributor_username}! Thank you for checking out our project during Hacktoberfest. However, this PR only introduces trivial whitespace or cosmetic edits without resolving an active issue. To ensure meaningful open-source contributions and maintain repository quality, we are unable to accept this PR. We encourage you to check out our open issues tagged with **`good first issue`**!",
             reasoning="Gemma detected isolated formatting edits to README with minimal substantive changes."
         )
 
@@ -80,7 +80,7 @@ def _heuristic_fallback(request: PRAnalysisRequest) -> PRAnalysisResponse:
             ],
             suggested_labels=["hacktoberfest-accepted", "needs-work"]
         ),
-        contributor_mentor_comment=f"Awesome work on this PR, @{request.contributor_username}! 🎉 Your contribution addresses a valuable improvement. Before we can merge, please double-check potential edge cases where values could be `None` or keys might be missing (to prevent unhandled 500 exceptions). Also consider adding a quick unit test in `tests/`. You're almost there!",
+        contributor_mentor_comment=f"Awesome work on this PR, @{request.contributor_username}! Your contribution addresses a valuable improvement. Before we can merge, please double-check potential edge cases where values could be `None` or keys might be missing (to prevent unhandled 500 exceptions). Also consider adding a quick unit test in `tests/`. You are almost there!",
         reasoning="Identified valid feature intention with minor defensive-coding revisions needed."
     )
 

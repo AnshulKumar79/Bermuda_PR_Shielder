@@ -1,4 +1,5 @@
 // HacktoShield Frontend Application Logic
+// Enhanced with Real-time Diff Telemetry, HUD Meters, and Keyboard Shortcuts
 
 // Local backup of presets in case API call hasn't resolved
 const FALLBACK_PRESETS = {
@@ -34,7 +35,7 @@ index 45f7a10..98d2e33 100644
 +        new_token = request_token_refresh(session["refresh_token"])
 +        session["token"] = new_token["access_token"]
 +        session["expires_at"] = new_token["expires_in"] + current_timestamp()
-+    return session`
+    return session`
   },
   exposed_secret: {
     pr_title: "fix: integrate groq client with direct key",
@@ -51,7 +52,7 @@ index 12b4e89..77a1c90 100644
 +GROQ_MODEL = "gemma2-9b-it"
 +DEBUG = True`
   }
-};
+ };
 
 let currentPresets = FALLBACK_PRESETS;
 
@@ -76,7 +77,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const verdictIcon = document.getElementById("verdictIcon");
   const verdictLabel = document.getElementById("verdictLabel");
   const verdictCategory = document.getElementById("verdictCategory");
+  const verdictStatusPill = document.getElementById("verdictStatusPill");
   const confidenceScore = document.getElementById("confidenceScore");
+  const confidenceRing = document.getElementById("confidenceRing");
 
   const quickDecision = document.getElementById("quickDecision");
   const riskPill = document.getElementById("riskPill");
@@ -85,7 +88,75 @@ document.addEventListener("DOMContentLoaded", async () => {
   const mentorComment = document.getElementById("mentorComment");
   const reasoningText = document.getElementById("reasoningText");
   const copyCommentBtn = document.getElementById("copyCommentBtn");
+  const copyBtnText = document.getElementById("copyBtnText");
   const toast = document.getElementById("toast");
+
+  // Terminal stats elements
+  const diffAddedCount = document.getElementById("diffAddedCount");
+  const diffDeletedCount = document.getElementById("diffDeletedCount");
+  const diffTotalLines = document.getElementById("diffTotalLines");
+  const clearDiffBtn = document.getElementById("clearDiffBtn");
+
+  // Risk meter HUD bars
+  const rb1 = document.getElementById("rb1");
+  const rb2 = document.getElementById("rb2");
+  const rb3 = document.getElementById("rb3");
+  const rb4 = document.getElementById("rb4");
+
+  // Loading step indicators
+  const step1 = document.getElementById("step1");
+  const step2 = document.getElementById("step2");
+  const step3 = document.getElementById("step3");
+
+  // Live diff stats calculation
+  function updateDiffStats() {
+    const text = diffContent.value || "";
+    const lines = text.split("\n");
+    let added = 0;
+    let deleted = 0;
+
+    lines.forEach(line => {
+      if (line.startsWith("+") && !line.startsWith("+++")) added++;
+      else if (line.startsWith("-") && !line.startsWith("---")) deleted++;
+    });
+
+    if (diffAddedCount) diffAddedCount.textContent = `+${added} lines`;
+    if (diffDeletedCount) diffDeletedCount.textContent = `-${deleted} lines`;
+    if (diffTotalLines) diffTotalLines.textContent = `${lines.length} lines`;
+  }
+
+  diffContent.addEventListener("input", updateDiffStats);
+
+  // Tab key support in diff editor for clean indentation
+  diffContent.addEventListener("keydown", (e) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const start = diffContent.selectionStart;
+      const end = diffContent.selectionEnd;
+      diffContent.value = diffContent.value.substring(0, start) + "  " + diffContent.value.substring(end);
+      diffContent.selectionStart = diffContent.selectionEnd = start + 2;
+      updateDiffStats();
+    }
+  });
+
+  // Clear diff button
+  if (clearDiffBtn) {
+    clearDiffBtn.addEventListener("click", () => {
+      diffContent.value = "";
+      updateDiffStats();
+      diffContent.focus();
+    });
+  }
+
+  // Keyboard shortcut: Ctrl+Enter (or Cmd+Enter) to trigger audit
+  window.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      if (!analyzeBtn.disabled) {
+        prForm.requestSubmit ? prForm.requestSubmit() : prForm.dispatchEvent(new Event("submit", { cancelable: true }));
+      }
+    }
+  });
 
   // Load presets from backend
   try {
@@ -97,6 +168,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   } catch (err) {
     console.warn("Using fallback presets:", err);
+  }
+
+  // Check health and update header telemetry if available
+  try {
+    const healthRes = await fetch("/api/health");
+    if (healthRes.ok) {
+      const healthData = await healthRes.json();
+      const statusText = document.getElementById("apiStatusText");
+      if (statusText && healthData.status === "online") {
+        statusText.textContent = healthData.groq_configured ? "ONLINE (GROQ)" : "ONLINE (DEMO)";
+      }
+    }
+  } catch (e) {
+    console.debug("Health endpoint ping skipped");
   }
 
   // Load initial preset
@@ -123,6 +208,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       prDesc.value = "";
       contributorName.value = "contributor";
       diffContent.value = "";
+      updateDiffStats();
       diffContent.focus();
     });
   }
@@ -135,6 +221,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     contributorName.value = p.contributor_username || "contributor";
     isFirstTime.checked = Boolean(p.is_first_time);
     diffContent.value = p.diff_content || "";
+    updateDiffStats();
   }
 
   // Form submission
@@ -161,17 +248,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadingState.style.display = "flex";
     analyzeBtn.disabled = true;
 
+    // Reset loading step pills
+    if (step1 && step2 && step3) {
+      step1.className = "step-pill active";
+      step2.className = "step-pill";
+      step3.className = "step-pill";
+    }
+
     const loadingMsgs = [
-      "Analyzing git diff unified syntax...",
-      "Feeding payload to Gemma 2 (9B) on Groq...",
-      "Evaluating Hacktoberfest contribution authenticity...",
-      "Synthesizing empathetic contributor feedback..."
+      { text: "Parsing git diff unified syntax...", step: 1 },
+      { text: "Accelerating prompt with Groq LPU (300+ tok/s)...", step: 2 },
+      { text: "Gemma 2 evaluating Hacktoberfest authenticity...", step: 2 },
+      { text: "Synthesizing empathetic contributor feedback...", step: 3 }
     ];
     let msgIdx = 0;
     const interval = setInterval(() => {
       msgIdx = (msgIdx + 1) % loadingMsgs.length;
-      loadingMessage.textContent = loadingMsgs[msgIdx];
-    }, 600);
+      loadingMessage.textContent = loadingMsgs[msgIdx].text;
+      
+      const curStep = loadingMsgs[msgIdx].step;
+      if (step1 && step2 && step3) {
+        step1.className = curStep >= 1 ? "step-pill active" : "step-pill";
+        step2.className = curStep >= 2 ? "step-pill active" : "step-pill";
+        step3.className = curStep >= 3 ? "step-pill active" : "step-pill";
+      }
+    }, 550);
 
     try {
       const response = await fetch("/api/analyze-pr", {
@@ -202,8 +303,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   function renderResults(data) {
     outputContent.style.display = "block";
 
-    // Confidence
-    confidenceScore.textContent = `${data.confidence_score || 95}%`;
+    // Confidence score & SVG Ring Animation
+    const conf = data.confidence_score || 95;
+    confidenceScore.textContent = `${conf}%`;
+    if (confidenceRing) {
+      confidenceRing.setAttribute("stroke-dasharray", `${conf}, 100`);
+      if (conf >= 85) confidenceRing.style.stroke = "#10b981";
+      else if (conf >= 60) confidenceRing.style.stroke = "#00f2fe";
+      else confidenceRing.style.stroke = "#f59e0b";
+    }
 
     // Verdict Banner & Styling
     verdictBanner.className = "verdict-banner";
@@ -211,20 +319,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (verdict === "SPAM") {
       verdictBanner.classList.add("verdict-spam");
-      verdictIcon.textContent = "🚨";
+      verdictIcon.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>`;
       verdictLabel.textContent = "SPAM / TRIVIAL DETECTED";
+      if (verdictStatusPill) verdictStatusPill.textContent = "FLAGGED FOR CLOSURE";
     } else if (verdict === "SECURITY_ALERT") {
       verdictBanner.classList.add("verdict-security");
-      verdictIcon.textContent = "🔥";
+      verdictIcon.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
       verdictLabel.textContent = "CRITICAL SECURITY RISK";
+      if (verdictStatusPill) verdictStatusPill.textContent = "BLOCK MERGE & ROTATE";
     } else if (verdict === "READY_TO_MERGE") {
       verdictBanner.classList.add("verdict-merge");
-      verdictIcon.textContent = "✅";
+      verdictIcon.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
       verdictLabel.textContent = "READY TO MERGE";
+      if (verdictStatusPill) verdictStatusPill.textContent = "FAST-TRACK APPROVED";
     } else {
       verdictBanner.classList.add("verdict-needs-work");
-      verdictIcon.textContent = "🌱";
+      verdictIcon.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>`;
       verdictLabel.textContent = "NEEDS REVISION (COACHING READY)";
+      if (verdictStatusPill) verdictStatusPill.textContent = "MENTORSHIP FEEDBACK";
     }
 
     verdictCategory.textContent = data.category || "General Contribution";
@@ -236,6 +348,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const risk = (m.risk_level || "LOW").toUpperCase();
     riskPill.className = `risk-pill risk-${risk}`;
     riskPill.textContent = `${risk} RISK`;
+
+    // Animate Risk Meter HUD Bars
+    updateRiskMeterBars(risk);
 
     changesList.innerHTML = "";
     (m.key_changes || []).forEach(change => {
@@ -259,12 +374,43 @@ document.addEventListener("DOMContentLoaded", async () => {
     reasoningText.textContent = data.reasoning || "Gemma completed evaluation based on commit intent and syntax rules.";
   }
 
+  function updateRiskMeterBars(risk) {
+    if (!rb1 || !rb2 || !rb3 || !rb4) return;
+    rb1.className = "risk-bar";
+    rb2.className = "risk-bar";
+    rb3.className = "risk-bar";
+    rb4.className = "risk-bar";
+
+    if (risk === "LOW") {
+      rb1.className = "risk-bar active-low";
+    } else if (risk === "MEDIUM") {
+      rb1.className = "risk-bar active-med";
+      rb2.className = "risk-bar active-med";
+    } else if (risk === "HIGH") {
+      rb1.className = "risk-bar active-high";
+      rb2.className = "risk-bar active-high";
+      rb3.className = "risk-bar active-high";
+    } else if (risk === "CRITICAL") {
+      rb1.className = "risk-bar active-high";
+      rb2.className = "risk-bar active-high";
+      rb3.className = "risk-bar active-high";
+      rb4.className = "risk-bar active-high";
+    }
+  }
+
   // Copy Comment Button
   copyCommentBtn.addEventListener("click", () => {
     const text = mentorComment.textContent;
     navigator.clipboard.writeText(text).then(() => {
+      copyCommentBtn.classList.add("copied");
+      if (copyBtnText) copyBtnText.textContent = "Copied to Clipboard";
       toast.classList.add("show");
-      setTimeout(() => toast.classList.remove("show"), 2200);
+      
+      setTimeout(() => {
+        toast.classList.remove("show");
+        copyCommentBtn.classList.remove("copied");
+        if (copyBtnText) copyBtnText.textContent = "Copy Markdown";
+      }, 2400);
     }).catch(err => {
       console.error("Clipboard write error:", err);
     });
