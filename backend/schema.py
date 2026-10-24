@@ -1,6 +1,9 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
+class FetchPRRequest(BaseModel):
+    pr_url: str = Field(..., description="GitHub Pull Request URL (e.g. https://github.com/owner/repo/pull/123)")
+
 class PRAnalysisRequest(BaseModel):
     repo_name: Optional[str] = Field("Bermuda_PR_Shielder", description="Target repository name")
     pr_title: str = Field(..., description="Title of the pull request")

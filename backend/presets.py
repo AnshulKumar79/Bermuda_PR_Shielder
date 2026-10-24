@@ -1,7 +1,7 @@
 PRESETS = {
     "spam_readme": {
         "id": "spam_readme",
-        "name": "🚨 Spam / Trivial README Edit",
+        "name": "Spam / Trivial README Edit",
         "description": "Contributor added a random comma & newline to README.md to game Hacktoberfest swag.",
         "pr_title": "docs: update readme formatting",
         "pr_description": "Fixed minor formatting issues in README for better readability. Please merge for Hacktoberfest!",
@@ -20,7 +20,7 @@ index 83a1b02..c192f11 100644
     },
     "buggy_first_timer": {
         "id": "buggy_first_timer",
-        "name": "🌱 First-Timer PR (Missing Null Check)",
+        "name": "First-Timer PR (Missing Null Check)",
         "description": "Genuine contributor added session token refresh, but forgot to handle expired/None tokens.",
         "pr_title": "feat(auth): refresh user session when near expiry",
         "pr_description": "Closes #142. Added an automatic token refresh logic so users don't get logged out abruptly. First time contributing to this repo!",
@@ -41,7 +41,7 @@ index 45f7a10..98d2e33 100644
     },
     "exposed_secret": {
         "id": "exposed_secret",
-        "name": "🔥 Critical Security Risk (Leaked API Key)",
+        "name": "Critical Security Risk (Leaked API Key)",
         "description": "Contributor accidentally hardcoded a production Groq API key in application config.",
         "pr_title": "fix: integrate groq client with direct key",
         "pr_description": "Added direct configuration for quick testing with Groq endpoint.",
