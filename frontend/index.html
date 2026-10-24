@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HacktoShield | Gemma-Powered PR Sentinel & Contributor Mentor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="noise-overlay"></div>
+  
+  <!-- Header -->
+  <header class="app-header">
+    <div class="brand-container">
+      <div class="brand-logo">🛡️</div>
+      <div>
+        <h1 class="brand-title">Hackto<span class="gradient-text">Shield</span></h1>
+        <p class="brand-subtitle">AI PR Sentinel & Mentorship Coach for Hacktoberfest</p>
+      </div>
+    </div>
+    
+    <div class="header-badges">
+      <div class="pill-badge engine-badge">
+        <span class="status-dot pulsating"></span>
+        <span>Engine: <strong>Gemma 2 (9B)</strong></span>
+      </div>
+      <div class="pill-badge latency-badge">
+        <span>⚡ Groq LPU Powered</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-layout">
+    
+    <!-- Top Preset Toolbar -->
+    <section class="preset-section">
+      <div class="preset-header">
+        <span class="label-title">⚡ 1-Click Hackathon Presets (Try Instantly):</span>
+      </div>
+      <div class="preset-buttons" id="presetButtons">
+        <button class="preset-btn active" data-preset="spam_readme">
+          <span class="btn-icon">🚨</span>
+          <span>Spam README Edit</span>
+        </button>
+        <button class="preset-btn" data-preset="buggy_first_timer">
+          <span class="btn-icon">🌱</span>
+          <span>First-Timer Edge Case</span>
+        </button>
+        <button class="preset-btn" data-preset="exposed_secret">
+          <span class="btn-icon">🔥</span>
+          <span>Leaked API Key Risk</span>
+        </button>
+        <button class="preset-btn custom-btn" id="customInputBtn">
+          <span class="btn-icon">✏️</span>
+          <span>Custom PR Diff</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Interactive Grid -->
+    <div class="workspace-grid">
+      
+      <!-- Left Column: Input Form -->
+      <section class="panel input-panel">
+        <div class="panel-header">
+          <h2>📥 Pull Request Context</h2>
+          <span class="tag">Input Spec</span>
+        </div>
+
+        <form id="prForm">
+          <div class="form-row">
+            <div class="form-group flex-2">
+              <label for="prTitle">PR Title</label>
+              <input type="text" id="prTitle" placeholder="e.g., feat(auth): add session expiry refresh" required>
+            </div>
+            <div class="form-group flex-1">
+              <label for="contributorName">Contributor</label>
+              <input type="text" id="contributorName" placeholder="e.g., octocat">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-3">
+              <label for="prDesc">PR Description / Motivation</label>
+              <input type="text" id="prDesc" placeholder="Briefly describe the change...">
+            </div>
+            <div class="form-group flex-1 checkbox-group">
+              <label class="checkbox-label" for="isFirstTime">
+                <input type="checkbox" id="isFirstTime" checked>
+                <span>First-time Contributor</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="label-with-hint">
+              <label for="diffContent">Git Diff / Changed Lines</label>
+              <span class="hint">Standard git diff unified format</span>
+            </div>
+            <textarea id="diffContent" class="code-editor" rows="12" placeholder="diff --git a/file.py b/file.py..." required></textarea>
+          </div>
+
+          <button type="submit" class="submit-btn" id="analyzeBtn">
+            <span class="btn-text">🛡️ Run Gemma PR Audit</span>
+            <span class="btn-loader" style="display:none;"></span>
+          </button>
+        </form>
+      </section>
+
+      <!-- Right Column: Audit Results -->
+      <section class="panel results-panel" id="resultsSection">
+        <div class="panel-header">
+          <h2>⚡ Gemma Intelligence Verdict</h2>
+          <div class="confidence-badge" id="confidenceBadge">
+            <span class="badge-label">Confidence</span>
+            <span class="badge-value" id="confidenceScore">--%</span>
+          </div>
+        </div>
+
+        <!-- Initial Placeholder State -->
+        <div class="placeholder-state" id="placeholderState">
+          <div class="placeholder-icon">🔮</div>
+          <h3>Awaiting PR Analysis</h3>
+          <p>Click any 1-click preset above or paste a custom PR diff to see Gemma classify, triage, and draft mentorship feedback.</p>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading-state" id="loadingState" style="display:none;">
+          <div class="spinner"></div>
+          <p class="loading-message" id="loadingMessage">Sending diff to Gemma 2 on Groq...</p>
+        </div>
+
+        <!-- Actual Output Content -->
+        <div class="output-content" id="outputContent" style="display:none;">
+          
+          <!-- Verdict Ribbon -->
+          <div class="verdict-banner" id="verdictBanner">
+            <div class="verdict-icon" id="verdictIcon">⚡</div>
+            <div class="verdict-info">
+              <div class="verdict-label" id="verdictLabel">ANALYZING</div>
+              <div class="verdict-category" id="verdictCategory">Category</div>
+            </div>
+          </div>
+
+          <!-- Dual Cards -->
+          <div class="dual-cards">
+            
+            <!-- Maintainer Card -->
+            <div class="card maintainer-card">
+              <div class="card-header">
+                <span class="card-title">👨‍💻 Maintainer Quick Action</span>
+                <span class="risk-pill" id="riskPill">LOW RISK</span>
+              </div>
+              <div class="card-body">
+                <div class="stat-line">
+                  <span class="stat-label">Decision:</span>
+                  <span class="stat-value" id="quickDecision">--</span>
+                </div>
+                <div class="changes-list-container">
+                  <span class="stat-label">Key Changes:</span>
+                  <ul class="changes-list" id="changesList"></ul>
+                </div>
+                <div class="labels-container">
+                  <span class="stat-label">Suggested Labels:</span>
+                  <div class="label-pills" id="suggestedLabels"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contributor Mentorship Card -->
+            <div class="card mentor-card">
+              <div class="card-header">
+                <span class="card-title">🌱 Contributor Mentorship Comment</span>
+                <button class="copy-btn" id="copyCommentBtn" title="Copy ready-to-post markdown">
+                  📋 Copy Comment
+                </button>
+              </div>
+              <div class="card-body">
+                <div class="mentor-bubble" id="mentorComment">
+                  <!-- Comment text goes here -->
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Reasoning Footer -->
+          <div class="reasoning-box">
+            <span class="reasoning-title">🧠 Gemma Reasoning:</span>
+            <span class="reasoning-text" id="reasoningText">--</span>
+          </div>
+
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <p>Built for <strong>MLH Hacktoberfest</strong> with <strong>Gemma 2</strong> & <strong>Groq LPU</strong> • Open-Source under MIT</p>
+  </footer>
+
+  <div class="toast" id="toast">Copied to clipboard!</div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
