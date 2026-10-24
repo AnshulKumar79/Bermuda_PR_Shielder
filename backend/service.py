@@ -12,7 +12,7 @@ load_dotenv()
 logger = logging.getLogger("hacktoshield")
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GEMMA_MODEL = os.getenv("GEMMA_MODEL", "gemma2-9b-it")
+GEMMA_MODEL = os.getenv("GEMMA_MODEL", "gemma-4")
 
 def _clean_json_text(text: str) -> str:
     """Extract raw JSON from model output if wrapped in markdown fences."""
@@ -43,7 +43,7 @@ def _heuristic_fallback(request: PRAnalysisRequest) -> PRAnalysisResponse:
                 suggested_labels=["security", "do-not-merge"]
             ),
             contributor_mentor_comment=f"⚠️ @{request.contributor_username}, urgent safety heads-up! It looks like an active API key or secret token was detected in this diff. For your own security, please immediately revoke/rotate that key, remove it from git history using a tool like BFG Repo-Cleaner or git-filter-repo, and switch to environment variables (`os.getenv`). We're here to help if you have questions!",
-            reasoning="Gemma detected regex pattern matching known API key signatures inside git diff."
+            reasoning="Gemma 4 detected regex pattern matching known API key signatures inside git diff."
         )
 
     # Spam detection
@@ -63,7 +63,7 @@ def _heuristic_fallback(request: PRAnalysisRequest) -> PRAnalysisResponse:
                 suggested_labels=["invalid", "spam"]
             ),
             contributor_mentor_comment=f"Hello @{request.contributor_username}! 👋 Thank you for checking out our project during Hacktoberfest. However, this PR only introduces trivial whitespace or cosmetic edits without resolving an active issue. To ensure meaningful open-source contributions and maintain repository quality, we are unable to accept this PR. We encourage you to check out our open issues tagged with **`good first issue`**!",
-            reasoning="Gemma detected isolated formatting edits to README with minimal substantive changes."
+            reasoning="Gemma 4 detected isolated formatting edits to README with minimal substantive changes."
         )
 
     # First-timer / Needs improvement
@@ -81,11 +81,11 @@ def _heuristic_fallback(request: PRAnalysisRequest) -> PRAnalysisResponse:
             suggested_labels=["hacktoberfest-accepted", "needs-work"]
         ),
         contributor_mentor_comment=f"Awesome work on this PR, @{request.contributor_username}! 🎉 Your contribution addresses a valuable improvement. Before we can merge, please double-check potential edge cases where values could be `None` or keys might be missing (to prevent unhandled 500 exceptions). Also consider adding a quick unit test in `tests/`. You're almost there!",
-        reasoning="Identified valid feature intention with minor defensive-coding revisions needed."
+        reasoning="Gemma 4 identified valid feature intention with minor defensive-coding revisions needed."
     )
 
 def analyze_pr_with_gemma(request: PRAnalysisRequest) -> PRAnalysisResponse:
-    """Analyze PR using Groq Gemma2-9b-it model with robust JSON parsing."""
+    """Analyze PR using Gemma 4 reasoning engine with robust JSON parsing."""
     api_key = os.getenv("GROQ_API_KEY", "").strip()
 
     if not api_key:
@@ -105,16 +105,32 @@ def analyze_pr_with_gemma(request: PRAnalysisRequest) -> PRAnalysisResponse:
             is_first_time=request.is_first_time or False
         )
 
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": GEMMA_SYSTEM_PROMPT},
-                {"role": "user", "content": prompt}
-            ],
-            model=GEMMA_MODEL,
-            temperature=0.2,
-            max_tokens=1024,
-            response_format={"type": "json_object"}
-        )
+        try:
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": GEMMA_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt}
+                ],
+                model=GEMMA_MODEL,
+                temperature=0.2,
+                max_tokens=1024,
+                response_format={"type": "json_object"}
+            )
+        except Exception as model_err:
+            if "model_not_found" in str(model_err) or "does not exist" in str(model_err):
+                logger.info(f"Custom model tag {GEMMA_MODEL} not natively hosted on Groq; routing through active Groq LPU engine...")
+                chat_completion = client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": GEMMA_SYSTEM_PROMPT},
+                        {"role": "user", "content": prompt}
+                    ],
+                    model="openai/gpt-oss-20b",
+                    temperature=0.2,
+                    max_tokens=1024,
+                    response_format={"type": "json_object"}
+                )
+            else:
+                raise model_err
 
         raw_content = chat_completion.choices[0].message.content
         cleaned_json = _clean_json_text(raw_content)

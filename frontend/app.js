@@ -48,7 +48,7 @@ index 12b4e89..77a1c90 100644
 @@ -10,3 +10,6 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 -GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 +GROQ_API_KEY = "gsk_live_98a7sdf897sdfy89sd7f897sdf897sd98f7"
-+GROQ_MODEL = "gemma2-9b-it"
++GROQ_MODEL = "gemma-4"
 +DEBUG = True`
   }
 };
@@ -127,6 +127,65 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  // Live GitHub PR URL Fetcher
+  const githubPrUrl = document.getElementById("githubPrUrl");
+  const fetchPrBtn = document.getElementById("fetchPrBtn");
+
+  if (fetchPrBtn && githubPrUrl) {
+    fetchPrBtn.addEventListener("click", async () => {
+      const url = githubPrUrl.value.trim();
+      if (!url) {
+        alert("Please paste a valid GitHub PR URL (e.g. https://github.com/owner/repo/pull/123)");
+        githubPrUrl.focus();
+        return;
+      }
+
+      fetchPrBtn.disabled = true;
+      const originalText = fetchPrBtn.innerHTML;
+      fetchPrBtn.innerHTML = "<span>⏳</span> Fetching...";
+
+      try {
+        const res = await fetch(`/api/fetch-github-pr?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.detail || "Failed to fetch PR from GitHub");
+        }
+
+        // Fill form fields
+        prTitle.value = data.pr_title || "";
+        prDesc.value = data.pr_description || "";
+        contributorName.value = data.contributor_username || "contributor";
+        diffContent.value = data.diff_content || "";
+        isFirstTime.checked = true;
+
+        // Deselect presets to indicate custom PR
+        presetButtons.forEach(b => b.classList.remove("active"));
+        if (customInputBtn) customInputBtn.classList.add("active");
+
+        // Toast notification
+        toast.textContent = `📥 Loaded PR #${data.pr_number} from ${data.repo_name}!`;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 2500);
+
+      } catch (err) {
+        console.error("Fetch error:", err);
+        alert(`Could not fetch PR: ${err.message}`);
+      } finally {
+        fetchPrBtn.disabled = false;
+        fetchPrBtn.innerHTML = originalText;
+      }
+    });
+
+    // Allow pressing Enter in URL input to trigger fetch
+    githubPrUrl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        fetchPrBtn.click();
+      }
+    });
+  }
+
   function loadPreset(presetKey) {
     const p = currentPresets[presetKey];
     if (!p) return;
@@ -163,7 +222,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const loadingMsgs = [
       "Analyzing git diff unified syntax...",
-      "Feeding payload to Gemma 2 (9B) on Groq...",
+      "Feeding payload to Gemma 4 on Groq...",
       "Evaluating Hacktoberfest contribution authenticity...",
       "Synthesizing empathetic contributor feedback..."
     ];

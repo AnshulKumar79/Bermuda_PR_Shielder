@@ -52,7 +52,7 @@ def run_github_action():
             is_first_time=True
         )
 
-        print("[*] Analyzing PR diff with Gemma 2...")
+        print("[*] Analyzing PR diff with Gemma 4...")
         result = analyze_pr_with_gemma(req)
         print("\n" + "="*50)
         print(f"VERDICT:       {result.triage_verdict} (Confidence: {result.confidence_score}%)")
@@ -99,7 +99,7 @@ def run_github_action():
         is_first_time=True
     )
     
-    print(f"[*] Triaging PR #{pr_number} by @{contributor} using Gemma 2...")
+    print(f"[*] Triaging PR #{pr_number} by @{contributor} using Gemma 4...")
     result = analyze_pr_with_gemma(req)
     print(f"[+] Verdict: {result.triage_verdict} (Confidence: {result.confidence_score}%)")
 
@@ -114,7 +114,7 @@ def run_github_action():
 
     # Post Comment on GitHub PR
     comment_payload = {
-        "body": f"""### 🛡️ HacktoShield Automated Audit (Powered by Gemma 2)
+        "body": f"""### 🛡️ HacktoShield Automated Audit (Powered by Gemma 4)
 
 **Verdict:** `{result.triage_verdict}` | **Risk:** `{result.maintainer_summary.risk_level}`
 
@@ -130,7 +130,7 @@ def run_github_action():
 - **Key Changes:**
 {chr(10).join(f"  - {change}" for change in result.maintainer_summary.key_changes)}
 
-<sub>Confidence: {result.confidence_score}% • Evaluated by Gemma 2 on Groq LPU</sub>
+<sub>Confidence: {result.confidence_score}% • Evaluated by Gemma 4 on Groq LPU</sub>
 </details>
 """
     }

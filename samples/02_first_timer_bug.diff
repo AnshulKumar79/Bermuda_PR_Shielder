@@ -1,0 +1,12 @@
+diff --git a/src/auth/session.py b/src/auth/session.py
+index 45f7a10..98d2e33 100644
+--- a/src/auth/session.py
++++ b/src/auth/session.py
+@@ -34,6 +34,13 @@ def check_and_refresh_session(session: dict) -> dict:
++    # Refresh session if expiring in less than 5 minutes
++    time_left = session["expires_at"] - current_timestamp()
++    if time_left < 300:
++        new_token = request_token_refresh(session["refresh_token"])
++        session["token"] = new_token["access_token"]
++        session["expires_at"] = new_token["expires_in"] + current_timestamp()
++    return session

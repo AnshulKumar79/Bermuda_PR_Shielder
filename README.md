@@ -4,7 +4,7 @@
 ### The AI Sentinel & Contributor Mentor for Open-Source Repositories
 
 [![Hacktoberfest](https://img.shields.io/badge/Hacktoberfest-2026-ff7a00.svg?style=for-the-badge&logo=hacktoberfest)](https://hacktoberfest.com/)
-[![Powered by Gemma](https://img.shields.io/badge/Model-Gemma%202%20(9B)-4285F4?style=for-the-badge&logo=google)](https://ai.google.dev/gemma)
+[![Powered by Gemma](https://img.shields.io/badge/Model-Gemma%204-4285F4?style=for-the-badge&logo=google)](https://ai.google.dev/gemma)
 [![Inference by Groq](https://img.shields.io/badge/Inference-Groq%20LPU%20(300%2B%20T%2Fs)-f55036?style=for-the-badge)](https://groq.com/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
@@ -12,7 +12,7 @@
 <br/>
 
 **Built in 4 hours for the MLH Hacktoberfest Hackathon.**  
-HacktoShield stops open-source maintainer burnout while coaching first-time contributors with kind, actionable feedback powered by **Google Gemma 2** on **Groq LPU**.
+HacktoShield stops open-source maintainer burnout while coaching first-time contributors with kind, actionable feedback powered by **Google Gemma 4** on **Groq LPU**.
 
 [Live Demo](#-quick-start) • [Architecture](#-architecture) • [GitHub Action](#-drop-in-github-action) • [Presets](#-built-in-demo-presets)
 
@@ -34,7 +34,7 @@ Every October, thousands of new developers flock to open-source for Hacktoberfes
 **HacktoShield** serves as an intelligent filter and warm mentor between contributors and maintainers:
 
 - **🚨 Spam & Trivial PR Bouncer:** Automatically detects low-effort edits submitted solely for swag/badges and flags them for quick closing.
-- **🌱 Empathetic Contributor Mentor:** Rather than scolding beginners, Gemma writes warm, pedagogical comments explaining *why* a bug exists and hints on how to resolve it.
+- **🌱 Empathetic Contributor Mentor:** Rather than scolding beginners, Gemma 4 writes warm, pedagogical comments explaining *why* a bug exists and hints on how to resolve it.
 - **🔥 Security & Leak Sentinel:** Instantly catches accidentally committed secrets (`GROQ_API_KEY`, `.env`, private tokens) before they cause a disaster.
 - **👨‍💻 Maintainer 5-Second Digest:** Delivers a concise change summary, risk level, and suggested GitHub labels (`hacktoberfest-accepted`, `needs-work`, `security`).
 
@@ -51,7 +51,7 @@ graph TD
     C --> E[Diff Sanitizer & Context Builder]
     D --> E
     
-    E --> F[Gemma 2 Reasoning Engine via Groq LPU]
+    E --> F[Gemma 4 Reasoning Engine via Groq LPU]
     
     F --> G{Triage Decision}
     G -->|SPAM| H[Flag as Spam & Canned Polite Rejection]

@@ -45,6 +45,64 @@ def get_preset_detail(preset_id: str):
         raise HTTPException(status_code=404, detail="Preset not found")
     return PRESETS[preset_id]
 
+@app.get("/api/fetch-github-pr")
+def fetch_github_pr(url: str):
+    """Fetch public GitHub PR diff and metadata given a PR URL."""
+    import re
+    import requests
+
+    pattern = r"github\.com/([^/]+)/([^/]+)/pull/(\d+)"
+    match = re.search(pattern, url.strip())
+    if not match:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid GitHub PR URL. Format must be: https://github.com/owner/repo/pull/123"
+        )
+    
+    owner, repo, pr_number = match.group(1), match.group(2), match.group(3)
+    diff_url = f"https://github.com/{owner}/{repo}/pull/{pr_number}.diff"
+    api_url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}"
+
+    headers = {"User-Agent": "HacktoShield-PR-Sentinel"}
+
+    # 1. Fetch raw diff
+    try:
+        diff_res = requests.get(diff_url, headers=headers, timeout=12)
+        if diff_res.status_code != 200:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Could not fetch diff from GitHub ({diff_res.status_code}). Please verify the PR exists and is public."
+            )
+        diff_content = diff_res.text
+        if len(diff_content) > 12000:
+            diff_content = diff_content[:12000] + "\n\n... [diff truncated for performance] ..."
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch PR diff: {str(e)}")
+
+    # 2. Fetch metadata from GitHub API (fallback gracefully if unauthenticated rate limit)
+    pr_title = f"PR #{pr_number} from {owner}/{repo}"
+    pr_description = ""
+    contributor = "contributor"
+
+    try:
+        api_res = requests.get(api_url, headers=headers, timeout=6)
+        if api_res.status_code == 200:
+            meta = api_res.json()
+            pr_title = meta.get("title", pr_title)
+            pr_description = meta.get("body", "") or ""
+            contributor = meta.get("user", {}).get("login", contributor)
+    except Exception:
+        pass
+
+    return {
+        "repo_name": f"{owner}/{repo}",
+        "pr_title": pr_title,
+        "pr_description": pr_description,
+        "contributor_username": contributor,
+        "diff_content": diff_content,
+        "pr_number": pr_number
+    }
+
 @app.post("/api/analyze-pr", response_model=PRAnalysisResponse)
 def analyze_pr(request: PRAnalysisRequest):
     """Analyze a Pull Request and return structured triage & mentorship feedback."""

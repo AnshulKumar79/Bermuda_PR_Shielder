@@ -54,7 +54,7 @@ index 12b4e89..77a1c90 100644
 @@ -10,3 +10,6 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 -GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 +GROQ_API_KEY = "gsk_live_98a7sdf897sdfy89sd7f897sdf897sd98f7"
-+GROQ_MODEL = "gemma2-9b-it"
++GROQ_MODEL = "gemma-4"
 +DEBUG = True"""
     }
 }
