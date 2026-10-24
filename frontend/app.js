@@ -91,6 +91,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   const copyBtnText = document.getElementById("copyBtnText");
   const toast = document.getElementById("toast");
 
+  // PR Auto-Fetch elements
+  const prUrlInput = document.getElementById("prUrlInput");
+  const fetchPrBtn = document.getElementById("fetchPrBtn");
+  const fetchBtnText = document.getElementById("fetchBtnText");
+  const fetchSpinner = document.getElementById("fetchSpinner");
+  const importStatusRow = document.getElementById("importStatusRow");
+  const importStatusBadge = document.getElementById("importStatusBadge");
+  const panelSub = document.querySelector(".panel-sub");
+
   // Terminal stats elements
   const diffAddedCount = document.getElementById("diffAddedCount");
   const diffDeletedCount = document.getElementById("diffDeletedCount");
@@ -126,6 +135,102 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   diffContent.addEventListener("input", updateDiffStats);
+
+  // Auto-Fetch PR Logic from GitHub URL
+  async function fetchPRDetails(rawUrl) {
+    const url = (rawUrl || (prUrlInput ? prUrlInput.value : "")).trim();
+    if (!url) {
+      if (prUrlInput) prUrlInput.focus();
+      return;
+    }
+
+    if (fetchPrBtn) fetchPrBtn.disabled = true;
+    if (fetchSpinner) fetchSpinner.style.display = "inline-block";
+    if (fetchBtnText) fetchBtnText.textContent = "Fetching...";
+    if (importStatusRow && importStatusBadge) {
+      importStatusRow.style.display = "block";
+      importStatusBadge.className = "import-status-badge status-loading";
+      importStatusBadge.textContent = "Connecting to GitHub & fetching unified diff...";
+    }
+
+    try {
+      const response = await fetch("/api/fetch-pr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pr_url: url })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || `HTTP Error ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Populate form fields
+      prTitle.value = data.pr_title || "";
+      contributorName.value = data.contributor_username || "contributor";
+      prDesc.value = data.pr_description || "";
+      isFirstTime.checked = Boolean(data.is_first_time);
+      diffContent.value = data.diff_content || "";
+      updateDiffStats();
+
+      if (panelSub) {
+        panelSub.textContent = `Target: ${data.repo_name} (PR #${data.pull_number})`;
+      }
+
+      // Mark presets as inactive, set custom active
+      presetButtons.forEach(b => b.classList.remove("active"));
+      if (customInputBtn) customInputBtn.classList.add("active");
+
+      // Success indicator
+      if (importStatusBadge) {
+        importStatusBadge.className = "import-status-badge status-success";
+        importStatusBadge.textContent = `Loaded ${data.repo_name} #${data.pull_number}: "${(data.pr_title || '').slice(0, 45)}${(data.pr_title || '').length > 45 ? '...' : ''}"`;
+      }
+
+      toast.querySelector(".toast-title").textContent = "PR Fetched Successfully";
+      toast.querySelector(".toast-sub").textContent = `${data.repo_name} #${data.pull_number} loaded into context`;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2600);
+
+    } catch (err) {
+      console.error("PR Fetch Error:", err);
+      if (importStatusBadge) {
+        importStatusBadge.className = "import-status-badge status-error";
+        importStatusBadge.textContent = `Error: ${err.message}`;
+      }
+    } finally {
+      if (fetchPrBtn) fetchPrBtn.disabled = false;
+      if (fetchSpinner) fetchSpinner.style.display = "none";
+      if (fetchBtnText) fetchBtnText.textContent = "Fetch PR";
+    }
+  }
+
+  if (fetchPrBtn) {
+    fetchPrBtn.addEventListener("click", () => fetchPRDetails());
+  }
+
+  if (prUrlInput) {
+    prUrlInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        fetchPRDetails();
+      }
+    });
+
+    // Auto-fetch when user pastes a valid GitHub PR link
+    let debounceTimer;
+    prUrlInput.addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      const val = prUrlInput.value.trim();
+      if (/github\.com\/[^\/]+\/[^\/]+\/pull\/\d+/.test(val)) {
+        debounceTimer = setTimeout(() => {
+          fetchPRDetails(val);
+        }, 350);
+      }
+    });
+  }
 
   // Tab key support in diff editor for clean indentation
   diffContent.addEventListener("keydown", (e) => {
