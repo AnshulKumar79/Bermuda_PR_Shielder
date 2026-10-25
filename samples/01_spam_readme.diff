@@ -1,0 +1,10 @@
+diff --git a/README.md b/README.md
+index 83a1b02..c192f11 100644
+--- a/README.md
++++ b/README.md
+@@ -12,4 +12,5 @@
+ ## Getting Started
+-Run `npm install` and then `npm start` to run the project locally.
++Run `npm install` and then `npm start` to run the project locally. 
++
+ Thanks for using our tool!

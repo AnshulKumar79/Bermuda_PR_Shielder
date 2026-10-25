@@ -132,9 +132,9 @@ jobs:
 ## 👥 The Team & Hacktoberfest Spirit
 
 *Team members* :-
-- Anshul Kumar Chauhan
-- Krishna Tiwari
-- Ronit Kumar
+>> Anshul Kumar Chauhan
+>> Krishna Tiwari
+>> Ronit Kumar
 
 
 Built with ❤️ for the global open-source community during MLH Hacktoberfest.
